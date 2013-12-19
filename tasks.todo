@@ -1,0 +1,11 @@
+Refactoring:
+  ☐ move all xml code to helper script
+  ☐ use it
+  ☐ use parameters instead of fixed variables in sync and prepare scripts
+Testing:
+  Test-cases:
+    ☐ files
+    ☐ directories
+    ☐ mixed
+   Code:
+     ☐ Write code for test cases
