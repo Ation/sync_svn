@@ -1,5 +1,48 @@
 # file contain helpers to read report from file and to save it
 
+######################################### Helper functions
+
+Function IsDirectory($path)
+{
+    return (test-path $path -PathType container)
+}
+
+Function CopyFileRequired ( $path )
+{
+    $accepted_extensions = @(".cxx", ".hxx", ".c", ".cpp", ".h", ".hpp", "Makefile")
+
+    foreach ($extension in $accepted_extensions) {
+        if ($path.EndsWith( $extension) ) {
+            return $True
+        }
+    }
+
+    return $False
+}
+
+Function CopyDirectoryRequired ( $path )
+{
+    $ignored_path = @('DirectoryToIgnore')
+
+    return !($ignored_path.Contains($path))
+}
+
+######################################### Helper XML functions
+
+Function WriteNodesToXMLWriter ( $writer, $elementName, $nodes)
+{
+    $writer.WriteStartElement($elementName)
+    foreach ( $path in $nodes)
+    {
+        $writer.WriteStartElement("node")
+        $writer.WriteAttributeString("path", $path)
+        $writer.WriteEndElement()
+    }
+    $writer.WriteEndElement()
+}
+
+##########################################################
+
 # creates object that will be used for reports on 
 Function CreateReportObject
 {
@@ -68,18 +111,6 @@ Function LoadReportFromFile($report_file)
     return $report
 }
 
-Function WriteNodesToXMLWriter ( $writer, $elementName, $nodes)
-{
-    $writer.WriteStartElement($elementName)
-    foreach ( $path in $nodes)
-    {
-        $writer.WriteStartElement("node")
-        $writer.WriteAttributeString("path", $path)
-        $writer.WriteEndElement()
-    }
-    $writer.WriteEndElement()
-}
-
 Function SaveReport($report_file, $report)
 {
     $xml_settings = new-object System.Xml.XmlWriterSettings
@@ -110,4 +141,89 @@ Function SaveReport($report_file, $report)
     $writer.WriteEndDocument()
     $writer.Flush()
     $writer.Close()
+}
+
+Function GetSVNReport($status)
+{
+    $report = CreateReportObject
+
+    $count = -1
+
+    foreach ($entry in $status.status.target.entry)
+    {
+        $file_path = $entry.path
+        $node = $entry.SelectSingleNode("wc-status")
+        $file_status = $node.GetAttribute("item")
+
+        if ( IsDirectory( $file_path) ) {
+            if ($file_status -eq "missing") {
+                $count = $report.DirectoryToDelete.add($file_path)
+            }
+            elseif ($file_status -eq "deleted") {
+                # could be multiple entries for this directory. need to save only high order
+            }
+            elseif ($file_status -eq "added")  {
+                # could be multiple entries for this directory. need to save only high order
+            }
+            elseif ($file_status -eq "modified") {
+                # ignore modified directory - it should be svn properties
+                write "Ignore modified directory $file_path"
+            }
+            elseif ($file_status -eq "unversioned") {
+                if ( CopyDirectoryRequired($file_path)) {
+                    $count = $report.DirectoryUnversioned.add( $file_path)
+                } else {
+                    write "Ignoring directory $file_path"
+                }
+            }
+        } else {
+            if ($file_status -eq "missing") {
+                # missed file is not reported if directory missed or deleted
+                $count = $report.FileToDelete.Add($file_path)
+            }
+            elseif ($file_status -eq "deleted") {
+                # could be multiple entries for this directory. need to save only high order
+                $directoryDeleted = $False
+                foreach ( $dir in $delete_directories ) {
+                    if ($file_path.StartsWith($dir) ) {
+                        $directoryDeleted = $True
+                        break
+                    }
+                }
+
+                if ( ! $directoryDeleted ) {
+                    $count = $report.FileToDelete.Add( $file_path )
+                }
+            }
+            elseif ($file_status -eq "added")  {
+                # could be multiple entries for this directory. need to save only high order
+                $directory_added = $False
+                foreach ( $dir in $copy_directories ) {
+                    if ($file_path.StartsWith( $file_path ) ) {
+                        $directory_added = $True
+                        break
+                    }
+                }
+
+                if ( ! $directory_added ) {
+                    $count = $report.FileToCopy.add( $file_path)
+                }
+            }
+            elseif ($file_status -eq "modified") {
+                # modified file is not reported if directory was removed or deleted
+                $count = $report.FileToCopy.Add($file_path)
+            }
+            elseif ($file_status -eq "unversioned") {
+                if ( CopyFileRequired( $file_path ) ) {
+                        $count = $report.FileUnversioned.Add($file_path)
+                } else {
+                    write "Ignoring file $file_path"
+                }
+            }
+        }
+    }
+
+    if ( $count -ne -1) {
+        $report.IsEmpty = $False
+    }
 }
