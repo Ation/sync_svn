@@ -21,41 +21,85 @@ Function LoadReportFromFile($report_file)
 
     $report = CreateReportObject
 
-    if ( $content.Files.ToCopy.file -ne $null) {
-        foreach ($file_node in $content.Files.ToCopy.file) {
+    if ( $content.Files.ToCopy.node -ne $null) {
+        foreach ($file_node in $content.Files.ToCopy.node) {
             $count = $report.FileToCopy.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Files.ToDelete.file -ne $null) {
-        foreach ($file_node in $content.Files.ToDelete.file) {
+    if ( $content.Files.ToDelete.node -ne $null) {
+        foreach ($file_node in $content.Files.ToDelete.node) {
             $count = $report.FileToDelete.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Files.Unversioned.file -ne $null) {
-        foreach ($file_node in $content.Files.Unversioned.file) {
+    if ( $content.Files.Unversioned.node -ne $null) {
+        foreach ($file_node in $content.Files.Unversioned.node) {
             $count = $report.FileUnversioned.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.ToCopy.directory -ne $null) {
-        foreach ($directory_node in $content.Directories.ToCopy.directory) {
+    if ( $content.Directories.ToCopy.node -ne $null) {
+        foreach ($directory_node in $content.Directories.ToCopy.node) {
                 $count = $report.DirectoryToCopy.Add($directory_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.ToDelete.directory -ne $null) {
-        foreach ($directory_node in $content.Directories.ToDelete.directory) {
+    if ( $content.Directories.ToDelete.node -ne $null) {
+        foreach ($directory_node in $content.Directories.ToDelete.node) {
                 $count = $report.DirectoryToDelete.Add($directory_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.Unversioned.directory -ne $null) {
-        foreach ($directory_node in $content.Directories.Unversioned.directory) {
+    if ( $content.Directories.Unversioned.node -ne $null) {
+        foreach ($directory_node in $content.Directories.Unversioned.node) {
                 $count = $report.DirectoryUnversioned.Add($directory_node.GetAttribute("path") )
         }
     }
 
     return $report
+}
+
+Function WriteNodesToXMLWriter ( $writer, $elementName, $nodes)
+{
+    $writer.WriteStartElement($elementName)
+    foreach ( $path in $nodes)
+    {
+        $writer.WriteStartElement("node")
+        $writer.WriteAttributeString("path", $path)
+        $writer.WriteEndElement()
+    }
+    $writer.WriteEndElement()
+}
+
+Function SaveReport($report_file, $report)
+{
+    $xml_settings = new-object System.Xml.XmlWriterSettings
+
+    $xml_settings.Indent = $True
+    $xml_settings.IndentChars = "`t"
+
+    $writer = [System.Xml.XmlWriter]::Create($report_file, $xml_settings)
+
+    $writer.WriteStartDocument()
+
+    $writer.WriteStartElement("Files")
+
+    WriteNodesToXMLWriter $writer "ToCopy" $report.FileToCopy
+    WriteNodesToXMLWriter $writer "ToDelete" $report.FileToDelete
+    WriteNodesToXMLWriter $writer "Unversioned" $report.FileUnversioned
+
+    $writer.WriteEndElement() #files
+
+    $writer.WriteStartElement("Directories")
+
+    WriteNodesToXMLWriter $writer "ToCopy" $report.DirectoryToCopy
+    WriteNodesToXMLWriter $writer "ToDelete" $report.DirectoryToDelete
+    WriteNodesToXMLWriter $writer "Unversioned" $report.DirectoryUnversioned
+
+    $writer.WriteEndElement() #Directories
+
+    $writer.WriteEndDocument()
+    $writer.Flush()
+    $writer.Close()
 }
