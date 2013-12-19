@@ -12,6 +12,8 @@ Function CreateReportObject
     $report_object | Add-Member -NotePropertyName DirectoryToDelete -NotePropertyValue (New-Object System.Collections.ArrayList)
     $report_object | Add-Member -NotePropertyName DirectoryUnversioned -NotePropertyValue (New-Object System.Collections.ArrayList)
 
+    $report_object | Add-Member -NotePropertyName IsEmpty -NotePropertyValue $True
+
     return $report_object
 }
 
@@ -20,6 +22,8 @@ Function LoadReportFromFile($report_file)
     $content = [xml](get-content $report_file)
 
     $report = CreateReportObject
+
+    $count = -1
 
     if ( $content.Files.ToCopy.node -ne $null) {
         foreach ($file_node in $content.Files.ToCopy.node) {
@@ -55,6 +59,10 @@ Function LoadReportFromFile($report_file)
         foreach ($directory_node in $content.Directories.Unversioned.node) {
                 $count = $report.DirectoryUnversioned.Add($directory_node.GetAttribute("path") )
         }
+    }
+
+    if ($count -ne -1) {
+        $report.IsEmpty = $False
     }
 
     return $report
