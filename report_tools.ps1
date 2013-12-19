@@ -1,4 +1,4 @@
-. "$PSScriptRoot\script.ps1"
+# file contain helpers to read report from file and to save it
 
 # creates object that will be used for reports on 
 Function CreateReportObject
