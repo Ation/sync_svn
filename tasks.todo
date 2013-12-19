@@ -1,7 +1,7 @@
 Refactoring:
-  ☐ move all xml code to helper script
-  ☐ use it
-  ☐ use parameters instead of fixed variables in sync and prepare scripts
+  ✔ move all xml code to helper script @done (13-12-20 00:39)
+  ✔ use it @done (13-12-20 00:39)
+  ✔ use parameters instead of fixed variables in sync and prepare scripts @done (13-12-20 01:01)
 Testing:
   Test-cases:
     ☐ files

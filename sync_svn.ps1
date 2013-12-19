@@ -1,21 +1,28 @@
+if ( $args.Count -ne 3) {
+    write "Usage: <report file> <local path> <remote path>"
+    return
+}
+
 . "$PSScriptRoot\report_tools.ps1"
 
 #########################################################
 #                    Settings
 #########################################################
 
-$local_src_path = "C:\dev\backend\"
-$remote_src_path = "Z:\dev\backend\"
+$report_file = $args[0]
 
-$report_file = "C:\dev\sync_report.xml"
+$local_src_path = $args[1]
+$remote_src_path = $args[2]
 
-
- # if you have svn in PATH, next 3 lines should be removed
-
-# $svn_path = "C:\dev\Tools\svn-win32-1.6.12\svn-win32-1.6.12\bin"
-# if (! $env:path.Contains($svn_path)) {
-#     $env:path += ";" + $svn_path
-# }
+#check if svn acessible
+try {
+    svn  
+} 
+catch
+{
+    write "ERROR: SVN not found"
+    return
+}
 
 ######################################################### EO settings
 

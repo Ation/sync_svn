@@ -1,12 +1,17 @@
+if ( $args.count -ne 2) {
+    write "Usage: <report file> <remote path>"
+    return
+}
+ 
 . "$PSScriptRoot\report_tools.ps1"
 
 #########################################################
 #                    Settings
 #########################################################
 
-$remote_path = "Z:\dev\backend\"
+$report_file = $args[0]
 
-$report_file = "C:\dev\sync_report.xml"
+$remote_path = $args[1]
 
 ######################################################### EO settings
 
