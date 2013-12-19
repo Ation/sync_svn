@@ -51,61 +51,7 @@ SaveReport $report_file $report
 ######################################### merge operations #########################################
 # to determine if we need to do restore for something
 
-$dummy = -1
-
-foreach ($file in $report.FileUnversioned ) {
-    if ( ! ReportContainsFile $report $file) {
-        #unversioned file is not in there any more
-        $dummy = $report.FileToDelete.Add($file)
-    }
-}
-
-foreach ($file in $old_report.FileToCopy) {
-    if ( ! ReportContainsFile $report $file) {
-        #file need to be restored
-        $dummy = $report.FileToCopy.Add($file)
-    }
-}
-
-foreach ($file in $old_report.FileToDelete) {
-    if ( ! ReportContainsFile $report $file) {
-        $local_file_path = GetLocalPath( $file)
-        if (Test-Path $local_file_path) {
-            $dummy = $report.FileToCopy.Add($file)
-        } else {
-            $dummy = $report.FileToDelete.Add($file)
-        }
-    }
-}
-
-foreach ( $dir in $old_report.DirectoryToCopy ) {
-    if ( ! ReportContainsDir $report dir) {
-            $dummy = $$report.DirectoryToCopy.add($dir)
-    }
-}
-
-foreach ( $dir in $old_report.DirectoryUnversioned ) {
-    if ( ! ReportContainsDir $report dir ) {
-        $dummy = $report.DirectoryToDelete.add( $dir)
-    }
-}
-
-foreach ( $dir in $old_report.DirectoryToDelete ) {
-    if ( ! ReportContainsDir $report dir ) {
-        $local_path = GetLocalPath( $dir )
-
-        if (test-path $local_path) {
-            # directory restored
-            $dummy = $report.DirectoryToCopy.add( $dir)
-        } else {
-            # nothing to do. it was deleted last time and now it is missing and not in the index
-        }
-    }
-}
-
-if ($dummy -ne -1) {
-    $report.IsEmpty = $False
-}
+MergeReports $report $old_report
 
 ######################################### update remote repository #########################################
 
