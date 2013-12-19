@@ -60,11 +60,25 @@ Function CreateReportObject
     return $report_object
 }
 
+Function ReportContainsFile($report, $file)
+{
+    return $report.FileToCopy.Contains($file) -or $report.FileToDelete.Contains($file) -or $report.FileUnversioned.Contains($file)
+}
+
+Function ReportContainsDir($report, $dir)
+{
+    return $report.DirectoryToCopy.Contains($dir) -or $report.DirectoryToDelete.Contains($dir) -or $report.DirectoryUnversioned.Contains($dir)
+}
+
 Function LoadReportFromFile($report_file)
 {
-    $content = [xml](get-content $report_file)
-
     $report = CreateReportObject
+
+    if ( ! (Test-Path $report_file) ) {
+        return $report
+    }
+
+    $content = [xml](get-content $report_file)
 
     $count = -1
 
