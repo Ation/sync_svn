@@ -36,6 +36,7 @@ cd $local_src_path
 ######################################### read previous operations #########################################
 
 $old_report = LoadReportFromFile( $report_file)
+Remove-Item $report_file
 
 ######################################### get status #########################################
 
