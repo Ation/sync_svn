@@ -65,9 +65,38 @@ Function ReportContainsFile($report, $file)
     return $report.FileToCopy.Contains($file) -or $report.FileToDelete.Contains($file) -or $report.FileUnversioned.Contains($file)
 }
 
-Function ReportContainsDir($report, $dir)
+Function ReportContainsDir($report, $target)
 {
-    return $report.DirectoryToCopy.Contains($dir) -or $report.DirectoryToDelete.Contains($dir) -or $report.DirectoryUnversioned.Contains($dir)
+    foreach ( $dir in $report.DirectoryToCopy ) {
+        if ( $target.StartsWith($dir) ) {
+            return $True
+        }
+    }
+
+    foreach ( $dir in $report.DirectoryToDelete ) {
+        if ( $target.StartsWith($dir) ) {
+            return $True
+        }
+    }
+
+    foreach ( $dir in $report.DirectoryUnversioned ) {
+        if ( $target.StartsWith($dir) ) {
+            return $True
+        }
+    }
+
+    return $False
+}
+
+Function AddDirectoryToCollection( $collection, $dir) {
+    #remove all childs in this collection
+    for ( $i = $collection.count - 1; $i -ge 0; $i--) {
+        if ( $collection[$i].StartsWith( $dir ) ) {
+            $collection.RemoveAt( $i)
+        }
+    }
+
+    return $collection.Add($dir)
 }
 
 Function LoadReportFromFile($report_file)
@@ -175,9 +204,38 @@ Function GetSVNReport($status)
             }
             elseif ($file_status -eq "deleted") {
                 # could be multiple entries for this directory. need to save only high order
+                $delete_this = $True
+
+                for ($i = $report.DirectoryToDelete.count - 1; $i -ge 0; $i--) {
+                    if ( $file_path.StartsWith( $report.DirectoryToDelete[$i]) ) {
+                        $delete_this = $false
+                        break
+                    }
+                    if ( $report.DirectoryToDelete[$i].StartsWith($file_path) ) {
+                        $report.DirectoryToDelete.RemoveAt($i)
+                    }
+                }
+
+                if ($delete_this) {
+                    $count = $report.DirectoryToDelete.Add($file_path)
+                }
             }
             elseif ($file_status -eq "added")  {
-                # could be multiple entries for this directory. need to save only high order
+                $copy_this = $true
+
+                for ( $i = $report.DirectoryToCopy.count - 1; $i -ge 0; $i--) {
+                    if ( $file_path.StartsWith( $report.DirectoryToCopy[$i]) ) {
+                        $copy_this = $false
+                        break
+                    }
+                    if ( $report.DirectoryToCopy[$i].StartsWith( $file_path) ) {
+                        $report.DirectoryToCopy.RemoveAt($i)
+                    }
+                }
+
+                if ( $copy_this ) {
+                    $dummy = $report.DirectoryToCopy.Add( $file_path )
+                }
             }
             elseif ($file_status -eq "modified") {
                 # ignore modified directory - it should be svn properties
@@ -239,30 +297,59 @@ Function GetSVNReport($status)
 
     if ( $count -ne -1) {
         $report.IsEmpty = $False
+
+        #TODO process through files to remove files if they are in the directories to process
     }
 }
 
 Function MergeReports( $report, $old_report) {
     $dummy = -1
 
+    # merge directories first
+    foreach ( $dir in $old_report.DirectoryToCopy ) {
+        if ( ! (ReportContainsDir $report $dir)) {
+            if ( test-path $dir ) {
+                $dummy = AddDirectoryToCollection $report.DirectoryToCopy $dir
+            } else {
+                $dummy = AddDirectoryToCollection $report.DirectoryToDelete $dir
+            }
+        }
+    }
+
+    foreach ( $dir in $old_report.DirectoryUnversioned ) {
+        if ( ! (ReportContainsDir $report $dir) ) {
+            $dummy = AddDirectoryToCollection $report.DirectoryToDelete $dir
+        }
+    }
+
+    foreach ( $dir in $old_report.DirectoryToDelete ) {
+        if ( ! (ReportContainsDir $report $dir) ) {
+            $local_path = GetLocalPath( $dir )
+
+            if (test-path $local_path) {
+                # directory restored
+                $dummy = AddDirectoryToCollection $report.DirectoryToCopy $dir
+            } else {
+                # nothing to do. it was deleted last time and now it is missing and not in the index
+            }
+        }
+    }
+
+    # now we have all the list, let's add files
+    # since they came from old report, there should not be any overlapping\
+    # just add them
     foreach ($file in $old_report.FileUnversioned ) {
-        if ( ! ReportContainsFile $report $file) {
+        if ( ! (ReportContainsFile $report $file) ) {
             #unversioned file is not in there any more
             $dummy = $report.FileToDelete.Add($file)
         }
     }
 
     foreach ($file in $old_report.FileToCopy) {
-        if ( ! ReportContainsFile $report $file) {
-            #file need to be restored
-            $dummy = $report.FileToCopy.Add($file)
-        }
-    }
+        if ( ! (ReportContainsFile $report $file) ) {
+            $local_file_path = GetLocalPath( $file )
 
-    foreach ($file in $old_report.FileToDelete) {
-        if ( ! ReportContainsFile $report $file) {
-            $local_file_path = GetLocalPath( $file)
-            if (Test-Path $local_file_path) {
+            if ( test-path $local_file_path) {
                 $dummy = $report.FileToCopy.Add($file)
             } else {
                 $dummy = $report.FileToDelete.Add($file)
@@ -270,27 +357,13 @@ Function MergeReports( $report, $old_report) {
         }
     }
 
-    foreach ( $dir in $old_report.DirectoryToCopy ) {
-        if ( ! ReportContainsDir $report dir) {
-                $dummy = $$report.DirectoryToCopy.add($dir)
-        }
-    }
-
-    foreach ( $dir in $old_report.DirectoryUnversioned ) {
-        if ( ! ReportContainsDir $report dir ) {
-            $dummy = $report.DirectoryToDelete.add( $dir)
-        }
-    }
-
-    foreach ( $dir in $old_report.DirectoryToDelete ) {
-        if ( ! ReportContainsDir $report dir ) {
-            $local_path = GetLocalPath( $dir )
-
-            if (test-path $local_path) {
-                # directory restored
-                $dummy = $report.DirectoryToCopy.add( $dir)
+    foreach ($file in $old_report.FileToDelete) {
+        if ( ! (ReportContainsFile $report $file) ) {
+            $local_file_path = GetLocalPath( $file)
+            if (Test-Path $local_file_path) {
+                $dummy = $report.FileToCopy.Add($file)
             } else {
-                # nothing to do. it was deleted last time and now it is missing and not in the index
+                # do nothing. it was deleted and now it is gone
             }
         }
     }
