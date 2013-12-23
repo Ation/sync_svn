@@ -24,7 +24,13 @@ Function CopyDirectoryRequired ( $path )
 {
     $ignored_path = @('DirectoryToIgnore')
 
-    return !($ignored_path.Contains($path))
+    foreach ( $dir in $ignored_path ) {
+        if ( $dir -eq $path) {
+            return $False
+        }
+    }
+
+    return $True
 }
 
 ######################################### Helper XML functions
@@ -300,6 +306,8 @@ Function GetSVNReport($status)
 
         #TODO process through files to remove files if they are in the directories to process
     }
+
+    return $report
 }
 
 Function MergeReports( $report, $old_report) {
