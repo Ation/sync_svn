@@ -64,22 +64,27 @@ MergeReports $report $old_report
 
 if (! $report.IsEmpty)
 {
-    #perfom copy
-
     # process directories first
     foreach ($directory in $report.DirectoryToCopy + $report.DirectoryUnversioned) {
         $local_directory_path = GetLocalPath( $directory ) + "\*"
         $remote_directory_path = GetPathOnRemote( $directory )
 
-        write "Copy directory: $local_directory_path"
-        Copy-item $local_directory_path $remote_directory_path -recurse
+        write "Copy directory: $remote_directory_path"
+        if ( test-path $remote_directory_path ) {
+            # if directory should be copied - old version should be removed if exists
+            Remove-Item $remote_directory_path -recurse -force
+
+            $dummy = new-item $remote_directory_path -ItemType Container
+        }
+
+        Copy-Item -force -recurse $local_directory_path $remote_directory_path
     }
 
-    foreach ( $dir in $report.DirectoryToDelete ) {
-        $remote_directory_path = GetPathOnRemote( $dir )
+    foreach ( $directory in $report.DirectoryToDelete ) {
+        $remote_directory_path = GetPathOnRemote( $directory )        
 
-        write "Remove directory: $remote_directory_path"
-        Remove-Item $remote_directory_path -recurse
+        write "Delete directory: $remote_directory_path"
+        Remove-Item -recurse -force $remote_directory_path
     }
 
     # now process files
@@ -87,7 +92,7 @@ if (! $report.IsEmpty)
         $local_file_path = GetLocalPath( $file)
         $remote_file_path = GetPathOnRemote($file)
 
-        write "Copy file: $local_file_path"
+        write "Copy file: $remote_file_path"
         Copy-Item -Force $local_file_path $remote_file_path
     }
 

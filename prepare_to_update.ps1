@@ -20,12 +20,19 @@ if (Test-Path $report_file) {
     $report = LoadReportFromFile( $report_file)
     Remove-Item $report_file
 
-    #perfom copy
+    #remove files that were copied
     foreach ($file in $report.FileToCopy + $report.FileUnversioned) {
         $remote_file_path = $remote_path + $file
 
-        write "Delete: $remote_file_path"
+        write "Delete file: $remote_file_path"
         Remove-Item $remote_file_path
+    }
+
+    foreach ( $dir in $report.DirectoryToCopy + $report.DirectoryUnversioned ) {
+        $remote_dir_path = $remote_path + $dir
+
+        write "Delete directory: $remote_dir_path"
+        Remove-Item $remote_dir_path -recurse -force
     }
 
     write "Remote ready to update"
