@@ -3,6 +3,16 @@ if ( $args.Count -ne 3) {
     return
 }
 
+#check if svn acessible
+try {
+    svn help
+} 
+catch
+{
+    write "ERROR: SVN not found"
+    return
+}
+
 . "$PSScriptRoot\report_tools.ps1"
 
 #########################################################
@@ -13,16 +23,6 @@ $report_file = $args[0]
 
 $local_src_path = $args[1]
 $remote_src_path = $args[2]
-
-#check if svn acessible
-try {
-    svn  
-} 
-catch
-{
-    write "ERROR: SVN not found"
-    return
-}
 
 ######################################################### EO settings
 
@@ -43,7 +43,9 @@ cd $local_src_path
 ######################################### read previous operations #########################################
 
 $old_report = LoadReportFromFile( $report_file)
-Remove-Item $report_file
+if ( Test-Path $report_file ) {
+    Remove-Item $report_file
+}
 
 ######################################### get status #########################################
 
