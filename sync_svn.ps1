@@ -5,7 +5,7 @@ if ( $args.Count -ne 3) {
 
 #check if svn acessible
 try {
-    svn help
+    $dummy = svn help
 } 
 catch
 {
@@ -28,12 +28,12 @@ $remote_src_path = $args[2]
 
 Function GetLocalPath($file_path)
 {
-    return $local_src_path + $file_path
+    return join-path $local_src_path $file_path
 }
 
 Function GetPathOnRemote($file_path)
 {
-    return $remote_src_path + $file_path
+    return join-path $remote_src_path $file_path
 }
 
 ######################################### main #########################################
