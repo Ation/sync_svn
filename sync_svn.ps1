@@ -86,7 +86,11 @@ if (! $report.IsEmpty)
         $remote_directory_path = GetPathOnRemote( $directory )        
 
         write "Delete directory: $remote_directory_path"
-        Remove-Item -recurse -force $remote_directory_path
+        if (test-path $remote_directory_path) {
+            Remove-Item -recurse -force $remote_directory_path
+        } else {
+            write "Directory missing on the remote"
+        }
     }
 
     # now process files
@@ -102,7 +106,11 @@ if (! $report.IsEmpty)
         $remote_file_path = GetPathOnRemote($file)
 
         write "Delete file: $remote_file_path"
-        Remove-Item $remote_file_path
+        if (test-path $remote_file_path) {
+            Remove-Item $remote_file_path
+        } else {
+            write "File is missing on the remote"
+        }
     }
 } else {
     write "Nothing to update"

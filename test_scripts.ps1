@@ -123,6 +123,7 @@ $ignore_list = new-object System.Collections.ArrayList
 $dummy = $ignore_list.Add(".svn")
 
 $test_root = "$PSScriptRoot\test_root"
+$report_file = join-path $test_root "test_report.xml"
 
 $repo_root = "$test_root\repo"
 $local_path = "$test_root\local"
@@ -153,4 +154,148 @@ svn co $repo_link .
 
 # CompareDirectories $remote_path_info $local_path_info $ignore_list
 
-remove-item -recurse -force $test_root
+$content1 = "asdasd"
+$content2 = "xxxxzzzzzz"
+
+# 1 create file
+write "# 1 Creating file"
+$file_name1 = join-path $local_path_info.FullName "test_file1.cpp"
+$file_name2 = join-path $local_path_info.FullName "test_file2.cpp"
+
+set-content $file_name1 $content1
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 1. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 1. Second check"
+    return
+}
+
+# 2 remove this file
+
+write "# 2 Removing file"
+remove-item $file_name1
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 2. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 2. Second check"
+    return
+}
+
+# 3 restore file
+
+write "# 3 Restoring file"
+set-content $file_name1 $content1
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 3. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 3. Second check"
+    return
+}
+
+# 4 add file
+
+write "# 4 Adding to index"
+
+set-content $file_name2 $content2
+svn add $file_name1
+svn add $file_name2
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. Second check"
+    return
+}
+
+# 5 delete file
+write "# 5 Removing added files"
+
+remove-item $file_name1
+remove-item $file_name2
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. Second check"
+    return
+}
+
+# 6 restore file
+
+write "# 6 Restore files and revert missing file"
+set-content $file_name1 $content1
+svn revert $file_name2
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. Second check"
+    return
+}
+
+# 7 undo add 
+
+write "# 7 Revert file"
+svn revert $file_name1
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. First check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4. Second check"
+    return
+}
+
+svn add $file_name1
+svn commit -m "First commit"
+
+. "$PSScriptRoot\prepare_to_update.ps1" $report_file $remote_path_info.FullName
+svn update $remote_path_info.FullName
+
+write "OK"
+
+# remove-item -recurse -force $test_root
