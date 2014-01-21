@@ -117,38 +117,38 @@ Function LoadReportFromFile($report_file)
 
     $count = -1
 
-    if ( $content.Files.ToCopy.node -ne $null) {
-        foreach ($file_node in $content.Files.ToCopy.node) {
+    if ( $content.SyncReport.Files.ToCopy.node -ne $null) {
+        foreach ($file_node in $content.SyncReport.Files.ToCopy.node) {
             $count = $report.FileToCopy.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Files.ToDelete.node -ne $null) {
-        foreach ($file_node in $content.Files.ToDelete.node) {
+    if ( $content.SyncReport.Files.ToDelete.node -ne $null) {
+        foreach ($file_node in $content.SyncReport.Files.ToDelete.node) {
             $count = $report.FileToDelete.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Files.Unversioned.node -ne $null) {
-        foreach ($file_node in $content.Files.Unversioned.node) {
+    if ( $content.SyncReport.Files.Unversioned.node -ne $null) {
+        foreach ($file_node in $content.SyncReport.Files.Unversioned.node) {
             $count = $report.FileUnversioned.Add( $file_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.ToCopy.node -ne $null) {
-        foreach ($directory_node in $content.Directories.ToCopy.node) {
+    if ( $content.SyncReport.Directories.ToCopy.node -ne $null) {
+        foreach ($directory_node in $content.SyncReport.Directories.ToCopy.node) {
                 $count = $report.DirectoryToCopy.Add($directory_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.ToDelete.node -ne $null) {
-        foreach ($directory_node in $content.Directories.ToDelete.node) {
+    if ( $content.SyncReport.Directories.ToDelete.node -ne $null) {
+        foreach ($directory_node in $content.SyncReport.Directories.ToDelete.node) {
                 $count = $report.DirectoryToDelete.Add($directory_node.GetAttribute("path") )
         }
     }
 
-    if ( $content.Directories.Unversioned.node -ne $null) {
-        foreach ($directory_node in $content.Directories.Unversioned.node) {
+    if ( $content.SyncReport.Directories.Unversioned.node -ne $null) {
+        foreach ($directory_node in $content.SyncReport.Directories.Unversioned.node) {
                 $count = $report.DirectoryUnversioned.Add($directory_node.GetAttribute("path") )
         }
     }
@@ -171,6 +171,8 @@ Function SaveReport($report_file, $report)
 
     $writer.WriteStartDocument()
 
+    $writer.WriteStartElement("SyncReport")
+
     $writer.WriteStartElement("Files")
 
     WriteNodesToXMLWriter $writer "ToCopy" $report.FileToCopy
@@ -186,6 +188,8 @@ Function SaveReport($report_file, $report)
     WriteNodesToXMLWriter $writer "Unversioned" $report.DirectoryUnversioned
 
     $writer.WriteEndElement() #Directories
+
+    $writer.WriteEndElement() # SyncReport
 
     $writer.WriteEndDocument()
     $writer.Flush()
