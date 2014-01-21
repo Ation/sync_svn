@@ -4,8 +4,9 @@ Refactoring:
   ✔ use parameters instead of fixed variables in sync and prepare scripts @done (13-12-20 01:01)
 Testing:
   Test-cases:
-    ☐ files
+    ☐ files (need additional testing for renaming and replacing)
     ☐ directories
     ☐ mixed
    Code:
      ☐ Write code for test cases
+
