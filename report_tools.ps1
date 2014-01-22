@@ -302,6 +302,13 @@ Function GetSVNReport($status)
                     write "Ignoring file $file_path"
                 }
             }
+            elseif ($file_status -eq "replaced") {
+                if ( CopyFileRequired( $file_path ) ) {
+                        $count = $report.FileToCopy.Add($file_path)
+                } else {
+                    write "Ignoring file $file_path"
+                }
+            }
         }
     }
 
