@@ -75,8 +75,6 @@ if (! $report.IsEmpty)
         if ( test-path $remote_directory_path ) {
             # if directory should be copied - old version should be removed if exists
             Remove-Item $remote_directory_path -recurse -force
-
-            $dummy = new-item $remote_directory_path -ItemType Container
         }
 
         Copy-Item -force -recurse $local_directory_path $remote_directory_path
