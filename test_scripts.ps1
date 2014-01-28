@@ -601,9 +601,6 @@ $test_directory2 = new-object System.IO.DirectoryInfo (join-path $local_path_inf
 $dir1_file1 = join-path $test_directory1.FullName "dir1_file1.cpp"
 $dir1_file2 = join-path $test_directory1.FullName "dir1_file2.cpp"
 $dir1_file3 = join-path $test_directory1.FullName "dir1_file3.cpp"
-$dir2_file1 = join-path $test_directory2.FullName "dir2_file1.cpp"
-$dir2_file2 = join-path $test_directory2.FullName "dir2_file2.cpp"
-$dir2_file3 = join-path $test_directory2.FullName "dir1_file3.cpp"
 
 write "# 3.1 Create dir"
 
@@ -853,6 +850,76 @@ if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
 svn commit -m "Second commit"
 . "$PSScriptRoot\prepare_to_update.ps1" $report_file $remote_path_info.FullName
 svn update $remote_path_info.FullName
+
+write "Testing for changes in versioned directory"
+
+$dir1_file4 = join-path $test_directory1.FullName "dir1_file4.cpp"
+
+write "Directory in directory test"
+
+$master_directory = new-object System.IO.DirectoryInfo (join-path $local_path_info.FullName "masterdir")
+$added_sub_directory = new-object System.IO.DirectoryInfo (join-path $master_directory.FullName "added_subdir")
+$sub_directory = new-object System.IO.DirectoryInfo (join-path $master_directory.FullName "subdir")
+
+$master_file1 = join-path $master_directory.FullName "mf1.cpp"
+$master_file2 = join-path $master_directory.FullName "mf2.cpp"
+$master_file3 = join-path $master_directory.FullName "mf3.cpp"
+
+$sub_file1 = join-path $sub_directory.FullName "sf1.cpp"
+$sub_file2 = join-path $sub_directory.FullName "sf2.cpp"
+$sub_file3 = join-path $sub_directory.FullName "sf3.cpp"
+
+$added_sub_file1 = join-path $added_sub_directory.FullName "asf1.cpp"
+$added_sub_file2 = join-path $added_sub_directory.FullName "asf2.cpp"
+$added_sub_file3 = join-path $added_sub_directory.FullName "asf3.cppa"
+
+# create directory and subdir. add them, then create another
+
+$master_directory.Create()
+$added_sub_directory.Create()
+
+set-content $master_file1 $content1
+set-content $master_file2 $content2
+
+set-content $added_sub_file1 $content1
+set-content $added_sub_file2 $content2
+
+svn add $master_directory.FullName
+
+write "# 4.1 Adding dir and subdir"
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) )  {
+    write "Failed to sync at stage 4.1. Third check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4.1. Fourth check"
+    return
+}
+
+write "# 4.2 add unverioned directory"
+
+$sub_directory.Create()
+
+set-content $sub_file1 $content1
+set-content $sub_file2 $content2
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) )  {
+    write "Failed to sync at stage 4.2. Third check"
+    return
+}
+
+# want to check second time, cause report now exists
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName
+if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
+    write "Failed to sync at stage 4.2. Fourth check"
+    return
+}
 
 write "OK"
 

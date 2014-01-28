@@ -244,11 +244,11 @@ Function GetSVNReport($status)
                 }
 
                 if ( $copy_this ) {
-                    $dummy = $report.DirectoryToCopy.Add( $file_path )
+                    $count = $report.DirectoryToCopy.Add( $file_path )
                 }
             }
             elseif ($file_status -eq "modified") {
-                # ignore modified directory - it should be svn properties
+                # ignore modified directory - it must be svn properties
                 write "Ignore modified directory $file_path"
             }
             elseif ($file_status -eq "unversioned") {
@@ -266,7 +266,7 @@ Function GetSVNReport($status)
             elseif ($file_status -eq "deleted") {
                 # could be multiple entries for this directory. need to save only high order
                 $directoryDeleted = $False
-                foreach ( $dir in $delete_directories ) {
+                foreach ( $dir in $report.DirectoryToDelete ) {
                     if ($file_path.StartsWith($dir) ) {
                         $directoryDeleted = $True
                         break
@@ -280,7 +280,7 @@ Function GetSVNReport($status)
             elseif ($file_status -eq "added")  {
                 # could be multiple entries for this directory. need to save only high order
                 $directory_added = $False
-                foreach ( $dir in $copy_directories ) {
+                foreach ( $dir in $report.DirectoryToCopy ) {
                     if ($file_path.StartsWith( $file_path ) ) {
                         $directory_added = $True
                         break
@@ -297,7 +297,17 @@ Function GetSVNReport($status)
             }
             elseif ($file_status -eq "unversioned") {
                 if ( CopyFileRequired( $file_path ) ) {
+                    $directory_added = $False
+                    foreach ( $dir in $report.DirectoryToCopy ) {
+                        if ($file_path.StartsWith( $file_path ) ) {
+                            $directory_added = $True
+                            break
+                        }
+                    }
+
+                    if ( ! $directory_added ) {
                         $count = $report.FileUnversioned.Add($file_path)
+                    }
                 } else {
                     write "Ignoring file $file_path"
                 }
