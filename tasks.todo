@@ -4,9 +4,11 @@ Refactoring:
   ✔ use parameters instead of fixed variables in sync and prepare scripts @done (13-12-20 01:01)
 Testing:
   Test-cases:
-    ☐ files (need additional testing for renaming and replacing)
-    ☐ directories
-    ☐ mixed
+    ✔ files (need additional testing for renaming and replacing) @done (14-02-07 20:02)
+    ✔ directories @done (14-02-07 20:02)
+    ✔ mixed @done (14-02-07 20:02)
    Code:
-     ☐ Write code for test cases
+     ✔ Write code for test cases @done (14-02-07 20:02)
+Features and improvements:
+  At this point it is ok to have ignored files and directories in directory that will be copy completely.    
 

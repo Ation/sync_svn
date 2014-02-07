@@ -7,30 +7,24 @@ Function IsDirectory($path)
     return (test-path $path -PathType container)
 }
 
-Function CopyFileRequired ( $path )
+Function FileIgnored( $filePath, $sync_settings)
 {
-    $accepted_extensions = @(".cxx", ".hxx", ".c", ".cpp", ".h", ".hpp", "Makefile")
-
-    foreach ($extension in $accepted_extensions) {
-        if ($path.EndsWith( $extension) ) {
+    foreach ($ending in $sync_settings.IgnoreFileExtension) {
+        if ($filePath.EndsWith($ending) ) {
             return $True
         }
     }
-
     return $False
 }
 
-Function CopyDirectoryRequired ( $path )
+Function DirectoryIgnored( $directoryPath, $sync_settings)
 {
-    $ignored_path = @('DirectoryToIgnore')
-
-    foreach ( $dir in $ignored_path ) {
-        if ( $dir -eq $path) {
-            return $False
+    foreach ($pattern in $sync_settings.IgnoreDirectory) {
+        if ($directoryPath.Contains($pattern) ) {
+            return $True
         }
     }
-
-    return $True
+    return $False
 }
 
 ######################################### Helper XML functions
@@ -196,7 +190,7 @@ Function SaveReport($report_file, $report)
     $writer.Close()
 }
 
-Function GetSVNReport($status)
+Function GetSVNReport($status, $sync_settings)
 {
     $report = CreateReportObject
 
@@ -209,6 +203,11 @@ Function GetSVNReport($status)
         $file_status = $node.GetAttribute("item")
 
         if ( IsDirectory( $file_path) ) {
+            if (DirectoryIgnored $file_path $sync_settings) {
+                #write "Ignore directpry: $file_path"
+                continue
+            }
+
             if ($file_status -eq "missing") {
                 $count = $report.DirectoryToDelete.add($file_path)
             }
@@ -249,16 +248,16 @@ Function GetSVNReport($status)
             }
             elseif ($file_status -eq "modified") {
                 # ignore modified directory - it must be svn properties
-                write "Ignore modified directory $file_path"
+                # write "Ignore modified directory $file_path"
             }
             elseif ($file_status -eq "unversioned") {
-                if ( CopyDirectoryRequired($file_path)) {
-                    $count = $report.DirectoryUnversioned.add( $file_path)
-                } else {
-                    write "Ignoring directory $file_path"
-                }
+                $count = $report.DirectoryUnversioned.add( $file_path)
             }
         } else {
+            if ( FileIgnored $file_path $sync_settings ) {
+                #write "Ignore file: $file_path"
+                continue
+            }
             if ($file_status -eq "missing") {
                 # missed file is not reported if directory missed or deleted
                 $count = $report.FileToDelete.Add($file_path)
@@ -281,7 +280,7 @@ Function GetSVNReport($status)
                 # could be multiple entries for this directory. need to save only high order
                 $directory_added = $False
                 foreach ( $dir in $report.DirectoryToCopy ) {
-                    if ($file_path.StartsWith( $file_path ) ) {
+                    if ($file_path.StartsWith( $dir ) ) {
                         $directory_added = $True
                         break
                     }
@@ -296,28 +295,20 @@ Function GetSVNReport($status)
                 $count = $report.FileToCopy.Add($file_path)
             }
             elseif ($file_status -eq "unversioned") {
-                if ( CopyFileRequired( $file_path ) ) {
-                    $directory_added = $False
-                    foreach ( $dir in $report.DirectoryToCopy ) {
-                        if ($file_path.StartsWith( $file_path ) ) {
-                            $directory_added = $True
-                            break
-                        }
+                $directory_added = $False
+                foreach ( $dir in $report.DirectoryToCopy ) {
+                    if ($file_path.StartsWith( $dir ) ) {
+                        $directory_added = $True
+                        break
                     }
+                }
 
-                    if ( ! $directory_added ) {
-                        $count = $report.FileUnversioned.Add($file_path)
-                    }
-                } else {
-                    write "Ignoring file $file_path"
+                if ( ! $directory_added ) {
+                    $count = $report.FileUnversioned.Add($file_path)
                 }
             }
             elseif ($file_status -eq "replaced") {
-                if ( CopyFileRequired( $file_path ) ) {
-                        $count = $report.FileToCopy.Add($file_path)
-                } else {
-                    write "Ignoring file $file_path"
-                }
+                $count = $report.FileToCopy.Add($file_path)
             }
         }
     }

@@ -921,6 +921,55 @@ if ( ! ( CompareDirectories $local_path_info $remote_path_info $ignore_list) ) {
     return
 }
 
+write "# 5.1 test for file ignore"
+
+. "$PSScriptRoot\settings_tools.ps1"
+
+$ignore_extension = "asd"
+$ignore_pattern = "test_ignore"
+
+$ignore_file_name = "test_ignore_file." + $ignore_extension
+$not_ignore_file_name = $ignore_pattern + ".cpp"
+
+$local_ignore_file = join-path $local_path_info.FullName $ignore_file_name
+$local_not_ignore_file = join-path $local_path_info.FullName $not_ignore_file_name
+
+$remote_ignore_file = join-path $remote_path_info.FullName $ignore_file_name
+$remote_not_ignore_file = join-path $remote_path_info.FullName $not_ignore_file_name
+
+$local_ignore_directory = new-object System.IO.DirectoryInfo (join-path $local_path_info.FullName $ignore_pattern)
+$remote_ignore_directory = new-object System.IO.DirectoryInfo (join-path $remote_path_info.FullName $ignore_pattern)
+
+$sync_settings_file = join-path $test_root "sync_settings.xml"
+$sync_settings = CreateEmptySettings
+
+$dummy = $sync_settings.IgnoreFileExtension.Add($ignore_extension)
+$dummy = $sync_settings.IgnoreDirectory.Add($ignore_pattern)
+
+SaveSettings $sync_settings_file $sync_settings
+
+set-content $local_ignore_file $content1
+set-content $local_not_ignore_file $content1
+
+$local_ignore_directory.Create()
+
+. "$PSScriptRoot\sync_svn.ps1" $report_file $local_path_info.FullName $remote_path_info.FullName $sync_settings_file
+
+if (test-path $remote_ignore_file) {
+    write "ERROR: ignored file exists on the remote"
+    return 
+}
+
+if (test-path $remote_ignore_directory.FullName) {
+    write "ERROR: ignored directory exists on the remote"
+    return
+}
+
+if (! (test-path $remote_not_ignore_file)) {
+    write "ERROR: not ignored file missed on the remote"
+    return 
+}
+
 write "OK"
 
 # remove-item -recurse -force $test_root

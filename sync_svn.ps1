@@ -1,5 +1,5 @@
-if ( $args.Count -ne 3) {
-    write "Usage: <report file> <local path> <remote path>"
+if (( $args.Count -lt 3) -or ($args.Count -gt 4)) {
+    write "Usage: <report file> <local path> <remote path> [<settings_file>]"
     return
 }
 
@@ -14,6 +14,7 @@ catch
 }
 
 . "$PSScriptRoot\report_tools.ps1"
+. "$PSScriptRoot\settings_tools.ps1"
 
 #########################################################
 #                    Settings
@@ -36,33 +37,41 @@ Function GetPathOnRemote($file_path)
     return join-path $remote_src_path $file_path
 }
 
-######################################### main #########################################
+##################################### main ####################################
 
 cd $local_src_path
 
-######################################### read previous operations #########################################
+############################## load sync settings #############################
+
+if ($args.Count -eq 4) {
+    $sync_settings = LoadSettingsFromFile( $args[3])
+} else {
+    $sync_settings = CreateEmptySettings
+}
+
+########################## read previous operations ###########################
 
 $old_report = LoadReportFromFile( $report_file)
 if ( Test-Path $report_file ) {
     Remove-Item $report_file
 }
 
-######################################### get status #########################################
+################################# get status ##################################
 
 $status = [xml](svn st --xml)
 
-$report = GetSVNReport( $status )
+$report = GetSVNReport $status $sync_settings
 
-######################################### save current operations #########################################
+########################### save current operations ###########################
 
 SaveReport $report_file $report
 
-######################################### merge operations #########################################
+############################### merge operations ##############################
 # to determine if we need to do restore for something
 
 MergeReports $report $old_report
 
-######################################### update remote repository #########################################
+########################### update remote repository ##########################
 
 if (! $report.IsEmpty)
 {
